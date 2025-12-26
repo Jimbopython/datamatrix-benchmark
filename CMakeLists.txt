@@ -5,13 +5,16 @@ set(CMAKE_CXX_STANDARD 20)
 
 find_package(OpenCV REQUIRED)
 find_package(ZXing REQUIRED)
+find_package(libdmtx REQUIRED)
+find_package(TBB REQUIRED)
 
 add_library(sfdm)
 
-# Add sources
 target_sources(sfdm
     PRIVATE
         src/zxing_code_reader.cpp
+        src/libdmtx_code_reader.cpp
+        src/libdmtx_fast_code_reader.cpp
     PUBLIC
         FILE_SET headers
         TYPE HEADERS
@@ -19,6 +22,8 @@ target_sources(sfdm
         FILES
         include/sfdm/decode_result.hpp
         include/sfdm/icode_reader.hpp
+        include/sfdm/libdmtx_code_reader.hpp
+        include/sfdm/libdmtx_fast_code_reader.hpp
         include/sfdm/zxing_code_reader.hpp
 )
 
@@ -31,6 +36,8 @@ target_compile_features(sfdm PUBLIC cxx_std_20)
 target_link_libraries(sfdm
         PRIVATE
             ZXing::ZXing
+            libdmtx::libdmtx
+            onetbb::onetbb
         PUBLIC
             opencv::opencv)
 
