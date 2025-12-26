@@ -8,6 +8,8 @@
 #include <sstream>
 #include <map>
 #include <ZXing/ReadBarcode.h>
+#include <tbb/parallel_reduce.h>
+#include <tbb/blocked_range.h>
 
 bool containsAll(const std::vector<std::string>& a, const std::vector<std::string>& b) {
     return std::all_of(b.begin(), b.end(), [&](const auto& element) {
@@ -138,75 +140,77 @@ std::vector<cv::Rect> findDataMatrixROIs_Canny(const cv::Mat& input)
     return rois;
 }
 
-int dmtx(const cv::Mat& cvImage, const std::vector<std::string>& data ) {
+int dmtx(const cv::Mat& cvImage, const std::vector<std::string>& data)
+{
     std::vector<cv::Rect> rois;
 
-    std::vector<cv::Rect> mserROIs = findDataMatrixROIs_MSER(cvImage);
-    std::vector<cv::Rect> cannyROIs = findDataMatrixROIs_Canny(cvImage);
+    auto mserROIs = findDataMatrixROIs_MSER(cvImage);
+    auto cannyROIs = findDataMatrixROIs_Canny(cvImage);
 
     rois.insert(rois.end(), mserROIs.begin(), mserROIs.end());
     rois.insert(rois.end(), cannyROIs.begin(), cannyROIs.end());
 
     mergeROIs(rois);
 
-    std::vector<std::string> tmpData;
-    for (auto& r : rois) {
-        cv::Mat roi = cvImage(r).clone();
-
-        if (roi.cols < 120)
+    int count = tbb::parallel_reduce(
+        tbb::blocked_range<size_t>(0, rois.size()),
+        0,
+        [&](const tbb::blocked_range<size_t>& range, int localCount) -> int
         {
-            cv::resize(roi, roi, cv::Size(), 2.0, 2.0, cv::INTER_CUBIC);
-        }
-        // Create libdmtx image
-        DmtxImage* image = dmtxImageCreate(
-            roi.data,
-            roi.cols,
-            roi.rows,
-            DmtxPack8bppK  // 8-bit grayscale
-        );
+            for (size_t i = range.begin(); i != range.end(); ++i) {
+                const cv::Rect& r = rois[i];
 
-        if (!image) {
-            throw std::runtime_error("Failed to create image");
-        }
+                cv::Mat roi = cvImage(r).clone();
+                if (roi.cols < 120) {
+                    cv::resize(roi, roi, cv::Size(), 2.0, 2.0, cv::INTER_CUBIC);
+                }
 
-        // Create decoder
-        DmtxDecode* decoder = dmtxDecodeCreate(image, 1);
-        if (!decoder) {
-            dmtxImageDestroy(&image);
-            throw std::runtime_error("Failed to create decoder");
-        }
+                DmtxImage* image = dmtxImageCreate(
+                    roi.data, roi.cols, roi.rows, DmtxPack8bppK);
+                if (!image) continue;
 
-        // Find the next Data Matrix symbol
-        DmtxRegion* region = dmtxRegionFindNext(decoder, nullptr);
-        if(region == nullptr) {
-            continue;
-        }
-        // Decode the symbol
-        DmtxMessage* message = dmtxDecodeMatrixRegion(
-            decoder,
-            region,
-            DmtxUndefined
-        );
+                DmtxDecode* decoder = dmtxDecodeCreate(image, 1);
+                if (!decoder) {
+                    dmtxImageDestroy(&image);
+                    continue;
+                }
 
-        if(message == nullptr) {
-            continue;
-        }
+                DmtxTime timeout = dmtxTimeAdd(dmtxTimeNow(), 100);
+                DmtxRegion* region = dmtxRegionFindNext(decoder, &timeout);
+                if (!region) {
+                    dmtxDecodeDestroy(&decoder);
+                    dmtxImageDestroy(&image);
+                    continue;
+                }
 
-        auto it = std::ranges::find(data, reinterpret_cast<const char*>(message->output));
-        if(it != data.end()) {
-            tmpData.emplace_back(*it);
-        }
+                DmtxMessage* message =
+                    dmtxDecodeMatrixRegion(decoder, region, DmtxUndefined);
+                if (!message) {
+                    dmtxDecodeDestroy(&decoder);
+                    dmtxImageDestroy(&image);
+                    continue;
+                }
 
-        dmtxMessageDestroy(&message);
+                if (std::ranges::find(
+                        data,
+                        reinterpret_cast<const char*>(message->output)
+                    ) != data.end())
+                {
+                    ++localCount;
+                }
 
-        dmtxRegionDestroy(&region);
+                dmtxMessageDestroy(&message);
+                dmtxRegionDestroy(&region);
+                dmtxDecodeDestroy(&decoder);
+                dmtxImageDestroy(&image);
+            }
 
-        // Cleanup
-        dmtxDecodeDestroy(&decoder);
-        dmtxImageDestroy(&image);
-    }
+            return localCount;
+        },
+        std::plus<>()
+    );
 
-    return tmpData.size();
+    return count;
 }
 
 int zxing(const cv::Mat& cvImage, const std::vector<std::string>& data) {
