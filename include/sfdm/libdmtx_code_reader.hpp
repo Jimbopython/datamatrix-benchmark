@@ -4,6 +4,6 @@
 namespace sfdm {
     class LibdmtxCodeReader : public ICodeReader {
     public:
-        std::vector<DecodeResult> decode(const cv::Mat &image) override;
+        [[nodiscard]] std::vector<DecodeResult> decode(const cv::Mat &image) const override;
     };
 }

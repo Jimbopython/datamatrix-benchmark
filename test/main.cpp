@@ -1,20 +1,30 @@
 #include <catch2/catch_test_macros.hpp>
-#include <dmtx.h>
 #include <filesystem>
 #include <opencv2/opencv.hpp>
 #include <fstream>
 #include <string>
-#include <set>
 #include <sstream>
 #include <map>
-#include <ZXing/ReadBarcode.h>
-#include <tbb/parallel_reduce.h>
-#include <tbb/blocked_range.h>
+#include <ranges>
+#include <sfdm/zxing_code_reader.hpp>
+#include <sfdm/libdmtx_code_reader.hpp>
 
-bool containsAll(const std::vector<std::string> &a, const std::vector<std::string> &b) {
-    return std::all_of(b.begin(), b.end(), [&](const auto &element) {
-        return std::find(a.begin(), a.end(), element) != a.end();
-    });
+int extraElementsCount(const std::vector<std::string> &a,
+                       const std::vector<std::string> &requirement) {
+    std::unordered_map<std::string, int> freq;
+
+    for (const auto &x: a)
+        ++freq[x];
+
+    for (const auto &x: requirement)
+        --freq[x];
+
+    int extras = 0;
+    for (const auto &count: freq | std::views::values)
+        if (count > 0)
+            extras += count;
+
+    return extras;
 }
 
 std::map<std::string, std::vector<std::string> > readDataMatrixFile(const std::string &filename) {
@@ -48,173 +58,6 @@ std::map<std::string, std::vector<std::string> > readDataMatrixFile(const std::s
     return result;
 }
 
-std::vector<cv::Rect> findDataMatrixROIs_MSER(const cv::Mat &input) {
-    std::vector<cv::Rect> rois;
-
-    cv::Ptr<cv::MSER> mser = cv::MSER::create(
-        5, // delta
-        100, // min area
-        20000 // max area
-    );
-
-    std::vector<std::vector<cv::Point> > regions;
-    std::vector<cv::Rect> boxes;
-
-    mser->detectRegions(input, regions, boxes);
-
-    for (const cv::Rect &r: boxes) {
-        if (r.width < 16 || r.height < 16)
-            continue;
-
-        float aspect = static_cast<float>(r.width) / r.height;
-        if (aspect < 0.5f || aspect > 2.0f)
-            continue;
-
-        rois.push_back(r);
-    }
-
-    return rois;
-}
-
-void mergeROIs(std::vector<cv::Rect> &rois) {
-    for (size_t i = 0; i < rois.size(); ++i) {
-        for (size_t j = i + 1; j < rois.size();) {
-            cv::Rect intersection = rois[i] & rois[j];
-
-            if (intersection.area() > 0) {
-                rois[i] = rois[i] | rois[j];
-                rois.erase(rois.begin() + j);
-            } else {
-                ++j;
-            }
-        }
-    }
-}
-
-std::vector<cv::Rect> findDataMatrixROIs_Canny(const cv::Mat &input) {
-    std::vector<cv::Rect> rois;
-    cv::Mat blurImg, edges, morph;
-
-    cv::GaussianBlur(input, blurImg, cv::Size(3, 3), 0);
-    cv::Canny(blurImg, edges, 60, 160);
-
-    cv::Mat kernel = cv::getStructuringElement(
-        cv::MORPH_RECT, cv::Size(5, 5)
-    );
-    cv::morphologyEx(edges, morph, cv::MORPH_CLOSE, kernel);
-
-    std::vector<std::vector<cv::Point> > contours;
-    cv::findContours(
-        morph, contours,
-        cv::RETR_EXTERNAL,
-        cv::CHAIN_APPROX_SIMPLE
-    );
-
-    for (const std::vector<cv::Point> &c: contours) {
-        double area = cv::contourArea(c);
-        if (area < 200)
-            continue;
-
-        cv::Rect r = cv::boundingRect(c);
-
-        float aspect = static_cast<float>(r.width) / r.height;
-        if (aspect < 0.5f || aspect > 2.0f)
-            continue;
-
-        rois.push_back(r);
-    }
-
-    return rois;
-}
-
-int dmtx(const cv::Mat &cvImage, const std::vector<std::string> &data) {
-    std::vector<cv::Rect> rois;
-
-    auto mserROIs = findDataMatrixROIs_MSER(cvImage);
-    auto cannyROIs = findDataMatrixROIs_Canny(cvImage);
-
-    rois.insert(rois.end(), mserROIs.begin(), mserROIs.end());
-    rois.insert(rois.end(), cannyROIs.begin(), cannyROIs.end());
-
-    mergeROIs(rois);
-
-    int count = tbb::parallel_reduce(
-        tbb::blocked_range<size_t>(0, rois.size()),
-        0,
-        [&](const tbb::blocked_range<size_t> &range, int localCount) -> int {
-            for (size_t i = range.begin(); i != range.end(); ++i) {
-                const cv::Rect &r = rois[i];
-
-                cv::Mat roi = cvImage(r).clone();
-                if (roi.cols < 120) {
-                    cv::resize(roi, roi, cv::Size(), 2.0, 2.0, cv::INTER_CUBIC);
-                }
-
-                DmtxImage *image = dmtxImageCreate(
-                    roi.data, roi.cols, roi.rows, DmtxPack8bppK);
-                if (!image) continue;
-
-                DmtxDecode *decoder = dmtxDecodeCreate(image, 1);
-                if (!decoder) {
-                    dmtxImageDestroy(&image);
-                    continue;
-                }
-
-                DmtxTime timeout = dmtxTimeAdd(dmtxTimeNow(), 100);
-                DmtxRegion *region = dmtxRegionFindNext(decoder, &timeout);
-                if (!region) {
-                    dmtxDecodeDestroy(&decoder);
-                    dmtxImageDestroy(&image);
-                    continue;
-                }
-
-                DmtxMessage *message =
-                        dmtxDecodeMatrixRegion(decoder, region, DmtxUndefined);
-                if (!message) {
-                    dmtxDecodeDestroy(&decoder);
-                    dmtxImageDestroy(&image);
-                    continue;
-                }
-
-                if (std::ranges::find(
-                        data,
-                        reinterpret_cast<const char *>(message->output)
-                    ) != data.end()) {
-                    ++localCount;
-                }
-
-                dmtxMessageDestroy(&message);
-                dmtxRegionDestroy(&region);
-                dmtxDecodeDestroy(&decoder);
-                dmtxImageDestroy(&image);
-            }
-
-            return localCount;
-        },
-        std::plus<>()
-    );
-
-    return count;
-}
-
-int zxing(const cv::Mat &cvImage, const std::vector<std::string> &data) {
-    ZXing::ImageView source{cvImage.data, cvImage.cols, cvImage.rows, ZXing::ImageFormat::Lum};
-
-    ZXing::ReaderOptions options;
-    options.setBinarizer(ZXing::Binarizer::LocalAverage);
-    options.setTryHarder(true);
-    const auto results = ZXing::ReadBarcodes(source, options);
-
-    std::vector<std::string> tmpData;
-    for (const auto &result: results) {
-        auto it = std::ranges::find(data, result.text());
-        if (it != data.end()) {
-            tmpData.emplace_back(*it);
-        }
-    }
-    return tmpData.size();
-}
-
 cv::Mat get_image(const std::filesystem::directory_entry &entry) {
     cv::Mat image = cv::imread(entry.path().string(), cv::IMREAD_COLOR);
 
@@ -229,10 +72,10 @@ cv::Mat get_image(const std::filesystem::directory_entry &entry) {
 
 template<typename Callable>
 void test(const Callable &callable) {
-    const auto data = readDataMatrixFile("_deps/images-src/annotations.txt");
+    const auto data = readDataMatrixFile("../_deps/images-src/annotations.txt");
 
     SECTION("Single") {
-        for (const auto &entry: std::filesystem::directory_iterator("_deps/images-src")) {
+        for (const auto &entry: std::filesystem::directory_iterator("../_deps/images-src")) {
             if (entry.is_regular_file() && entry.path().extension() == ".jpg") {
                 cv::Mat image = get_image(entry);
 
@@ -243,7 +86,9 @@ void test(const Callable &callable) {
                 }
                 const auto currentData = it->second;
                 SECTION(fileName) {
-                    const auto foundCount = callable(image, currentData);
+                    const auto foundTexts = callable(image);
+                    const auto foundCount = foundTexts.size() - extraElementsCount(foundTexts, currentData);
+                    CAPTURE(foundTexts, currentData);
                     REQUIRE(foundCount == currentData.size());
                 }
             }
@@ -252,7 +97,7 @@ void test(const Callable &callable) {
     SECTION("Overall") {
         int foundTotal = 0;
         int totalCodes = 0;
-        for (const auto &entry: std::filesystem::directory_iterator("_deps/images-src")) {
+        for (const auto &entry: std::filesystem::directory_iterator("../_deps/images-src")) {
             if (entry.is_regular_file() && entry.path().extension() == ".jpg") {
                 cv::Mat image = get_image(entry);
 
@@ -262,7 +107,8 @@ void test(const Callable &callable) {
                     continue;
                 }
                 const auto currentData = it->second;
-                const auto foundCount = callable(image, currentData);
+                const auto foundTexts = callable(image);
+                const auto foundCount = foundTexts.size() - extraElementsCount(foundTexts, currentData);
                 foundTotal += foundCount;
                 totalCodes += currentData.size();
             }
@@ -271,10 +117,31 @@ void test(const Callable &callable) {
     }
 }
 
+auto testReader(const auto &reader, const cv::Mat &image) {
+    const auto foundData = reader.decode(image);
+    std::vector<std::string> foundTexts;
+    foundTexts.reserve(foundData.size());
+    std::ranges::transform(foundData.begin(), foundData.end(), std::back_inserter(foundTexts),
+                           [](const auto &result) {
+                               return result.text;
+                           });
+    return foundTexts;
+}
+
 TEST_CASE("LibDMTX") {
-    test(dmtx);
+    test(
+        [](const cv::Mat &image) {
+            const sfdm::LibdmtxCodeReader reader;
+            return testReader(reader, image);
+        }
+    );
 }
 
 TEST_CASE("ZXing") {
-    test(zxing);
+    test(
+        [](const cv::Mat &image) {
+            const sfdm::ZXingCodeReader reader;
+            return testReader(reader, image);
+        }
+    );
 }

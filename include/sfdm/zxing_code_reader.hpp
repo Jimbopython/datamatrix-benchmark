@@ -9,9 +9,11 @@ namespace sfdm {
     public:
         ZXingCodeReader();
 
+        ~ZXingCodeReader() override;
+
         //DetectionResult detect(const cv::Mat &image) override;
 
-        std::vector<DecodeResult> decode(const cv::Mat &image) override;
+        [[nodiscard]] std::vector<DecodeResult> decode(const cv::Mat &image) const override;
 
     private:
         std::unique_ptr<ZXingCodeReaderImpl> m_impl;

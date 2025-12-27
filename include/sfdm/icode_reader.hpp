@@ -8,6 +8,6 @@ namespace sfdm {
         virtual ~ICodeReader() = default;
 
         //virtual std::vector<DetectionResult> detect(const cv::Mat& image) = 0;
-        virtual std::vector<DecodeResult> decode(const cv::Mat &image) = 0;
+        [[nodiscard]] virtual std::vector<DecodeResult> decode(const cv::Mat &image) const = 0;
     };
 }

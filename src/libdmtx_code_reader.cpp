@@ -2,7 +2,7 @@
 #include <dmtx.h>
 
 namespace sfdm {
-    std::vector<DecodeResult> LibdmtxCodeReader::decode(const cv::Mat &image) {
+    std::vector<DecodeResult> LibdmtxCodeReader::decode(const cv::Mat &image) const {
         DmtxImage *dmtxImage = dmtxImageCreate(
             image.data, image.cols, image.rows, DmtxPack8bppK);
         if (!dmtxImage) return {};

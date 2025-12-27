@@ -86,7 +86,7 @@ namespace {
 }
 
 namespace sfdm {
-    std::vector<DecodeResult> LibdmtxFastCodeReader::decode(const cv::Mat &image) {
+    std::vector<DecodeResult> LibdmtxFastCodeReader::decode(const cv::Mat &image) const {
         std::vector<cv::Rect> rois;
 
         auto mserROIs = findDataMatrixROIs_MSER(image);

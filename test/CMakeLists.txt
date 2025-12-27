@@ -1,11 +1,8 @@
 find_package(Catch2 REQUIRED)
-find_package(libdmtx REQUIRED)
 find_package(OpenCV REQUIRED)
-find_package(ZXing REQUIRED)
-find_package(TBB REQUIRED)
 
 add_executable(test main.cpp)
-target_link_libraries(test PRIVATE Catch2::Catch2WithMain libdmtx::libdmtx opencv::opencv ZXing::ZXing onetbb::onetbb)
+target_link_libraries(test PRIVATE Catch2::Catch2WithMain opencv::opencv sfdm)
 
 include(FetchContent)
 FetchContent_Declare(
