@@ -93,7 +93,7 @@ TEST_CASE("ZXing") {
     );
 }
 
-TEST_CASE("Fast LibDMTX") {
+TEST_CASE("LibDMTX Fast") {
     const auto timeout = GENERATE_REF(from_range(std::vector{100, 200, 0}));
     SECTION(std::to_string(timeout) + "ms timeout") {
         test(
