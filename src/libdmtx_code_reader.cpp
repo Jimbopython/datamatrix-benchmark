@@ -76,7 +76,8 @@ namespace sfdm {
 
         while (results.size() < m_maximumNumberOfCodesToDetect) {
             const auto [region, stopCause] = detectNext(decodeGuard.getDecoder());
-            if (!region || stopCause == StopCause::ScanTimeLimit) {
+            // stopCause can be NotFound, but a valid region is returned, which may actually contain a valid code.
+            if (!region && stopCause != StopCause::ScanSuccess) {
                 break;
             }
 
