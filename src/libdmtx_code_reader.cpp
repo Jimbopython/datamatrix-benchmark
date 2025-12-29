@@ -1,11 +1,13 @@
 #include <dmtx.h>
 #include <sfdm/libdmtx_code_reader.hpp>
+#include <stdexcept>
+#include <thread>
 
 namespace {
     class DecodeGuard {
     public:
-        explicit DecodeGuard(const cv::Mat &image) :
-            m_image(dmtxImageCreate(image.data, image.cols, image.rows, DmtxPack8bppK),
+        explicit DecodeGuard(const sfdm::ImageView &image) :
+            m_image(dmtxImageCreate(image.data, image.width, image.height, DmtxPack8bppK),
                     [](DmtxImage *dmtxImage) {
                         if (dmtxImage) {
                             dmtxImageDestroy(&dmtxImage);
@@ -62,7 +64,7 @@ namespace sfdm {
                 }};
     }
 
-    std::vector<DecodeResult> LibdmtxCodeReader::decode(const cv::Mat &image) const {
+    std::vector<DecodeResult> LibdmtxCodeReader::decode(const ImageView &image) const {
         DecodeGuard decodeGuard(image);
 
         std::vector<DecodeResult> results;

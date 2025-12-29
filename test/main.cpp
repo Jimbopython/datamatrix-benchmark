@@ -67,7 +67,8 @@ auto testReader(auto &reader, const cv::Mat &image) {
             callbackData.emplace_back(result);
         });
     }
-    const auto foundData = reader.decode(image);
+    const auto foundData =
+            reader.decode({static_cast<size_t>(image.cols), static_cast<size_t>(image.rows), image.data});
     if (reader.isDecodingFinishedCallbackSupported()) {
         REQUIRE(foundData == callbackData);
     }

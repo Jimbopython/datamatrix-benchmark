@@ -11,7 +11,6 @@ endif ()
 
 set(CMAKE_CXX_STANDARD 20)
 
-find_package(OpenCV REQUIRED)
 if (sfdm_WITH_ZXING_DECODER)
     find_package(ZXing REQUIRED)
 endif ()
@@ -32,8 +31,12 @@ target_sources(sfdm
         FILES
         include/sfdm/decode_result.hpp
         include/sfdm/icode_reader.hpp
+        include/sfdm/image_view.hpp
         $<$<BOOL:${sfdm_WITH_LIBDMTX_DECODER}>:include/sfdm/libdmtx_code_reader.hpp>
         $<$<BOOL:${sfdm_WITH_ZXING_DECODER}>:include/sfdm/zxing_code_reader.hpp>
+)
+set_target_properties(sfdm PROPERTIES
+        VERIFY_INTERFACE_HEADER_SETS ON
 )
 
 target_include_directories(sfdm
@@ -45,9 +48,7 @@ target_compile_features(sfdm PUBLIC cxx_std_20)
 target_link_libraries(sfdm
         PRIVATE
         $<$<BOOL:${sfdm_WITH_ZXING_DECODER}>:ZXing::ZXing>
-        $<$<BOOL:${sfdm_WITH_LIBDMTX_DECODER}>:libdmtx::libdmtx>
-        PUBLIC
-            opencv::opencv)
+        $<$<BOOL:${sfdm_WITH_LIBDMTX_DECODER}>:libdmtx::libdmtx>)
 
 if (sfdm_BUILD_TESTS)
     add_subdirectory(test)

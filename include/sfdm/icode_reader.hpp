@@ -1,6 +1,8 @@
 #pragma once
-#include <opencv2/opencv.hpp>
+#include <functional>
 #include <sfdm/decode_result.hpp>
+#include <sfdm/image_view.hpp>
+#include <vector>
 
 namespace sfdm {
     class ICodeReader {
@@ -8,7 +10,7 @@ namespace sfdm {
         virtual ~ICodeReader() = default;
 
         // virtual std::vector<DetectionResult> detect(const cv::Mat& image) = 0;
-        [[nodiscard]] virtual std::vector<DecodeResult> decode(const cv::Mat &image) const = 0;
+        [[nodiscard]] virtual std::vector<DecodeResult> decode(const ImageView &image) const = 0;
 
         virtual void setTimeout(uint32_t msec) = 0;
 

@@ -14,8 +14,9 @@ namespace sfdm {
 
     ZXingCodeReader::~ZXingCodeReader() = default;
 
-    std::vector<DecodeResult> ZXingCodeReader::decode(const cv::Mat &image) const {
-        ZXing::ImageView source{image.data, image.cols, image.rows, ZXing::ImageFormat::Lum};
+    std::vector<DecodeResult> ZXingCodeReader::decode(const ImageView &image) const {
+        ZXing::ImageView source{image.data, static_cast<int>(image.width), static_cast<int>(image.height),
+                                ZXing::ImageFormat::Lum};
 
         const auto results = ZXing::ReadBarcodes(source, m_impl->options);
 

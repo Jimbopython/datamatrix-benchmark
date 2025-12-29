@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <sfdm/icode_reader.hpp>
 
 namespace sfdm {
@@ -13,7 +14,7 @@ namespace sfdm {
 
         // DetectionResult detect(const cv::Mat &image) override;
 
-        [[nodiscard]] std::vector<DecodeResult> decode(const cv::Mat &image) const override;
+        [[nodiscard]] std::vector<DecodeResult> decode(const ImageView &image) const override;
 
         void setTimeout(uint32_t msec) override;
 

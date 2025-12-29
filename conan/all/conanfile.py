@@ -40,10 +40,10 @@ class SfdmConan(ConanFile):
             self.requires("libdmtx/0.7.8")
         if self.options.with_zxing_decoder:
             self.requires("zxing-cpp/2.3.0")
-        self.requires("opencv/4.9.0", transitive_headers=True, transitive_libs=True)
 
         if self.options.with_test:
             self.requires("catch2/3.11.0")
+            self.requires("opencv/4.9.0")
 
     def validate(self):
         check_min_cppstd(self, 20)
@@ -81,3 +81,6 @@ class SfdmConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = ["sfdm"]
+
+        if self.settings.os in ["Linux", "FreeBSD"]:
+            self.cpp_info.system_libs.append("pthread")
