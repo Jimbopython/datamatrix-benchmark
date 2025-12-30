@@ -1,15 +1,22 @@
 import argparse
+import re
 import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import MultipleLocator
+
+number_pattern = re.compile(r"(\d+)\s*==\s*(\d+)")
 
 
 def do_plot_work(entries, lib, time_label=None):
     labels = []
     successes = []
     failures = []
+    overall = None
     for name, (succ, fail) in entries.items():
+        if name == "Overall":
+            overall = (succ, fail)
+            continue
         labels.append(f"{name}")
         successes.append(succ)
         failures.append(fail)
@@ -28,15 +35,87 @@ def do_plot_work(entries, lib, time_label=None):
     plt.tight_layout()
 
     plt.show()
+    return overall
+
+
+def plot_overall(data):
+    result = {}
+    for lib, value in data.items():
+        if lib == 'LibDMTX':
+            for timeout, vals in value.items():
+                result[f"{lib}_{timeout}"] = vals
+        else:
+            result[lib] = value
+
+    labels = []
+    successes = []
+    failures = []
+    for name, (succ, fail) in result.items():
+        labels.append(f"{name}")
+        successes.append(succ)
+        failures.append(fail)
+
+    x = np.arange(len(labels))
+
+    plt.figure(figsize=(8, 5))
+    plt.bar(x, successes, label="Successes", color="green")
+    plt.bar(x, failures, bottom=successes, label="Failures", color="red")
+
+    plt.ylabel("Count")
+    plt.title(f"Detection of Datamatrix Codes Overall")
+    plt.xticks(x, labels, rotation=90)
+    plt.yticks(list(plt.yticks()[0]) + [successes[0] + failures[0]])
+    plt.legend()
+    plt.tight_layout()
+
+    plt.show()
 
 
 def plot_success_rates(data):
+    overalls = {
+        "LibDMTX": {
+            "0ms": {},
+            "100ms": {},
+            "200ms": {}
+        },
+        "ZXing": {}
+    }
     for lib, entries in data.items():
         if lib == "LibDMTX":
             for time_label, a in entries.items():
-                do_plot_work(a, lib, time_label)
+                overalls[lib][time_label] = do_plot_work(a, lib, time_label)
         else:
-            do_plot_work(entries, lib)
+            overalls[lib] = do_plot_work(entries, lib)
+    plot_overall(overalls)
+
+
+def get_data_from_xml(section):
+    all_sections = section.findall(".//Section")
+    for sub_section in all_sections:
+        name = sub_section.get("name")
+        if name and name.startswith("DMX"):
+            overall = sub_section.find("OverallResults")
+            if overall is not None:
+                successes = int(overall.get("successes", 0))
+                failures = int(overall.get("failures", 0))
+                return name, successes, failures
+        overall_result = check_overall(sub_section)
+        if overall_result[0] is not None:
+            return overall_result
+
+    return check_overall(section)
+
+
+def check_overall(section) -> tuple[str, int, int] | tuple[None, None, None]:
+    expression = section.find("Expression")
+    if expression is not None:
+        expanded = expression.find("Expanded")
+        match = number_pattern.search(expanded.text.strip())
+        if match:
+            found, total = int(match.group(1)), int(match.group(2))
+            return "Overall", found, total - found
+
+    return None, None, None
 
 
 def main():
@@ -61,10 +140,9 @@ def main():
         "ZXing": {}
     }
 
-    # Iterate over all TestCase elements
     for testcase in root.findall("TestCase"):
         for section in testcase.findall("Section"):
-            timeout_name = section.get("name")  # e.g., "100ms timeout"
+            timeout_name = section.get("name")
             if "timeout" in timeout_name:
                 if "100ms" in timeout_name:
                     timeout = "100ms"
@@ -72,27 +150,15 @@ def main():
                     timeout = "200ms"
                 elif "0ms" in timeout_name:
                     timeout = "0ms"
-                for sub_section in section.findall(".//Section"):
-                    name = sub_section.get("name")
-                    if name and name.startswith("DMX"):
-                        overall = sub_section.find("OverallResults")
-                        if overall is not None:
-                            successes = int(overall.get("successes", 0))
-                            failures = int(overall.get("failures", 0))
 
-                            data["LibDMTX"][timeout][name] = (successes, failures)
+                name, successes, failures = get_data_from_xml(section)
+
+                if name is not None:
+                    data["LibDMTX"][timeout][name] = (successes, failures)
             elif "ZXing" in testcase.get("name"):
-                for sub_section in section.findall(".//Section"):
-                    name = sub_section.get("name")
-                    if name and name.startswith("DMX"):
-                        overall = sub_section.find("OverallResults")
-                        if overall is not None:
-                            successes = int(overall.get("successes", 0))
-                            failures = int(overall.get("failures", 0))
-
-                            data["ZXing"][name] = (successes, failures)
-            else:
-                continue
+                name, successes, failures = get_data_from_xml(section)
+                if name is not None:
+                    data["ZXing"][name] = (successes, failures)
 
     plot_success_rates(data)
 
