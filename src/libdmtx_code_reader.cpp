@@ -1,5 +1,9 @@
 #include <dmtx.h>
 #include <sfdm/libdmtx_code_reader.hpp>
+
+#include <algorithm>
+#include <array>
+#include <span>
 #include <stdexcept>
 #include <thread>
 
@@ -33,6 +37,27 @@ namespace {
         std::shared_ptr<DmtxImage> m_image;
         std::shared_ptr<DmtxDecode> m_decoder;
     };
+
+    uint32_t invertYAxis(size_t imageHeight, uint32_t value) { return static_cast<uint32_t>(imageHeight - 1 - value); }
+
+    uint32_t roundToNearest(double value) { return static_cast<uint32_t>(value + 0.5); }
+
+    sfdm::CodePosition getPosition(const sfdm::ImageView &image, const std::shared_ptr<DmtxRegion> &region) {
+        DmtxVector2 bottomLeft{0, 0};
+        DmtxVector2 topLeft{0, 1};
+        DmtxVector2 bottomRight{1, 0};
+        DmtxVector2 topRight{1, 1};
+
+        dmtxMatrix3VMultiplyBy(&bottomLeft, region->fit2raw);
+        dmtxMatrix3VMultiplyBy(&bottomRight, region->fit2raw);
+        dmtxMatrix3VMultiplyBy(&topRight, region->fit2raw);
+        dmtxMatrix3VMultiplyBy(&topLeft, region->fit2raw);
+
+        return {sfdm::Point{roundToNearest(bottomLeft.X), invertYAxis(image.height, roundToNearest(bottomLeft.Y))},
+                sfdm::Point{roundToNearest(topLeft.X), invertYAxis(image.height, roundToNearest(topLeft.Y))},
+                sfdm::Point{roundToNearest(topRight.X), invertYAxis(image.height, roundToNearest(topRight.Y))},
+                sfdm::Point{roundToNearest(bottomRight.X), invertYAxis(image.height, roundToNearest(bottomRight.Y))}};
+    }
 } // namespace
 
 namespace sfdm {
@@ -81,8 +106,8 @@ namespace sfdm {
             if (!message) {
                 break;
             }
-
-            DecodeResult decodeResult{reinterpret_cast<const char *>(message->output), {}};
+            const CodePosition position = getPosition(image, region);
+            DecodeResult decodeResult{reinterpret_cast<const char *>(message->output), position};
             if (m_decodingFinishedCallback) {
                 std::thread(m_decodingFinishedCallback, decodeResult).detach();
             }

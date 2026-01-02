@@ -20,6 +20,6 @@ namespace sfdm {
         bool isDecodingFinishedCallbackSupported() override;
 
     private:
-        ZXingCodeReader m_zxingCodeReader;
+        LibdmtxCodeReader m_libdmtxCodeReader;
     };
 } // namespace sfdm

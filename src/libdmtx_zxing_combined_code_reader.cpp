@@ -44,7 +44,7 @@ namespace {
 
 namespace sfdm {
     std::vector<DecodeResult> LibdmtxZXingCombinedCodeReader::decode(const ImageView &image) const {
-        auto results = m_zxingCodeReader.decode(image);
+        auto results = m_libdmtxCodeReader.decode(image);
         if (results.size() == getMaximumNumberOfCodesToDetect()) {
             return results;
         }
@@ -57,7 +57,7 @@ namespace sfdm {
             fillRectFromPoints(result.position.topLeft, result.position.topRight, result.position.bottomLeft,
                                result.position.bottomRight, imageCopy);
         }
-        LibdmtxCodeReader libdmtxReader;
+        ZXingCodeReader libdmtxReader;
         libdmtxReader.setMaximumNumberOfCodesToDetect(getMaximumNumberOfCodesToDetect() - results.size());
         const auto libdmtxResults = libdmtxReader.decode(imageCopy);
         results.insert(results.end(), libdmtxResults.begin(), libdmtxResults.end());
@@ -71,10 +71,10 @@ namespace sfdm {
     bool LibdmtxZXingCombinedCodeReader::isTimeoutSupported() { return false; }
 
     void LibdmtxZXingCombinedCodeReader::setMaximumNumberOfCodesToDetect(uint32_t count) {
-        m_zxingCodeReader.setMaximumNumberOfCodesToDetect(count);
+        m_libdmtxCodeReader.setMaximumNumberOfCodesToDetect(count);
     }
     uint32_t LibdmtxZXingCombinedCodeReader::getMaximumNumberOfCodesToDetect() const {
-        return m_zxingCodeReader.getMaximumNumberOfCodesToDetect();
+        return m_libdmtxCodeReader.getMaximumNumberOfCodesToDetect();
     }
     void LibdmtxZXingCombinedCodeReader::setDecodingFinishedCallback(std::function<void(DecodeResult)> callback) {
         throw std::runtime_error("LibdmtxZXingCombinedCodeReader::setDecodingFinishedCallback is not supported.");

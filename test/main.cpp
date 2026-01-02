@@ -29,7 +29,7 @@ void testDecoding(const Callable &callable) {
                 }
                 const auto currentData = it->second;
                 SECTION(fileName) {
-                    auto foundTexts = callable(image);
+                    auto foundTexts = callable(image, fileName);
                     const auto foundCount = foundTexts.size() - extraElementsCount(foundTexts, currentData);
 #ifndef BUILD_FOR_PLOTS
                     CHECK(foundCount == currentData.size());
@@ -60,7 +60,7 @@ void testDecoding(const Callable &callable) {
                     continue;
                 }
                 const auto currentData = it->second;
-                const auto foundTexts = callable(image);
+                const auto foundTexts = callable(image, fileName);
                 const auto foundCount = foundTexts.size() - extraElementsCount(foundTexts, currentData);
                 foundTotal += foundCount;
                 totalCodes += currentData.size();
@@ -70,7 +70,7 @@ void testDecoding(const Callable &callable) {
     }
 }
 
-auto testReader(auto &reader, const cv::Mat &image) {
+auto testReader(auto &reader, const cv::Mat &image, std::string libName, std::string codeName) {
 #ifndef BUILD_FOR_PLOTS
     std::vector<sfdm::DecodeResult> callbackData;
     std::mutex dataMutex;
@@ -89,6 +89,19 @@ auto testReader(auto &reader, const cv::Mat &image) {
         REQUIRE(foundData == callbackData);
     }
 #endif
+
+    cv::Mat colorImage;
+    cv::cvtColor(image, colorImage, cv::COLOR_GRAY2BGR);
+    for (const auto &data: foundData) {
+        std::array cvData{
+                cv::Point{static_cast<int>(data.position.topLeft.x), static_cast<int>(data.position.topLeft.y)},
+                cv::Point{static_cast<int>(data.position.topRight.x), static_cast<int>(data.position.topRight.y)},
+                cv::Point{static_cast<int>(data.position.bottomRight.x), static_cast<int>(data.position.bottomRight.y)},
+                cv::Point{static_cast<int>(data.position.bottomLeft.x), static_cast<int>(data.position.bottomLeft.y)}};
+        cv::polylines(colorImage, cvData, true, cv::Scalar(0, 255, 0), 2);
+        cv::imwrite(std::format("{}_{}.png", codeName, libName), colorImage);
+    }
+
     std::vector<std::string> foundTexts;
     foundTexts.reserve(foundData.size());
     std::ranges::transform(foundData.begin(), foundData.end(), std::back_inserter(foundTexts), [](const auto &result) {
@@ -104,24 +117,24 @@ auto testReader(auto &reader, const cv::Mat &image) {
 TEST_CASE("LibDMTX Decoding") {
     const auto timeout = GENERATE_REF(from_range(std::vector{100, 200, 0}));
     SECTION(std::to_string(timeout) + "ms timeout") {
-        testDecoding([&](const cv::Mat &image) {
+        testDecoding([&](const cv::Mat &image, const std::string &codeName) {
             sfdm::LibdmtxCodeReader reader;
             reader.setTimeout(timeout);
-            return testReader(reader, image);
+            return testReader(reader, image, "libdmtx", codeName);
         });
     }
 }
 
 TEST_CASE("ZXing Decoding") {
-    testDecoding([](const cv::Mat &image) {
+    testDecoding([](const cv::Mat &image, const std::string &codeName) {
         sfdm::ZXingCodeReader reader;
-        return testReader(reader, image);
+        return testReader(reader, image, "zxing", codeName);
     });
 }
 
 TEST_CASE("Combined Decoding") {
-    testDecoding([](const cv::Mat &image) {
+    testDecoding([](const cv::Mat &image, const std::string &codeName) {
         sfdm::LibdmtxZXingCombinedCodeReader reader;
-        return testReader(reader, image);
+        return testReader(reader, image, "combined", codeName);
     });
 }

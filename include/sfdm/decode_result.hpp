@@ -14,13 +14,13 @@ namespace sfdm {
         Point &operator=(Point &&other) noexcept = default;
     };
     struct CodePosition {
+        Point bottomLeft{};
         Point topLeft{};
         Point topRight{};
-        Point bottomLeft{};
         Point bottomRight{};
         CodePosition() = default;
-        CodePosition(Point topLeft, Point topRight, Point bottomLeft, Point bottomRight) :
-            topLeft{topLeft}, topRight{topRight}, bottomLeft{bottomLeft}, bottomRight{bottomRight} {}
+        CodePosition(Point bottomLeft, Point topLeft, Point topRight, Point bottomRight) :
+            bottomLeft{bottomLeft}, topLeft{topLeft}, topRight{topRight}, bottomRight{bottomRight} {}
         auto operator<=>(const CodePosition &) const = default;
         CodePosition(const CodePosition &other) = default;
         CodePosition(CodePosition &&other) noexcept = default;

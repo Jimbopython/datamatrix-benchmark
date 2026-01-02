@@ -28,16 +28,16 @@ namespace sfdm {
             const auto bottomLeft = zXingPosition.bottomLeft();
             const auto bottomRight = zXingPosition.bottomRight();
             const CodePosition codePosition{{
+                                                    static_cast<uint32_t>(bottomLeft.x),
+                                                    static_cast<uint32_t>(bottomLeft.y),
+                                            },
+                                            {
                                                     static_cast<uint32_t>(topLeft.x),
                                                     static_cast<uint32_t>(topLeft.y),
                                             },
                                             {
                                                     static_cast<uint32_t>(topRight.x),
                                                     static_cast<uint32_t>(topRight.y),
-                                            },
-                                            {
-                                                    static_cast<uint32_t>(bottomLeft.x),
-                                                    static_cast<uint32_t>(bottomLeft.y),
                                             },
                                             {
                                                     static_cast<uint32_t>(bottomRight.x),
