@@ -11,3 +11,5 @@ int extraElementsCount(const std::vector<std::string> &a, const std::vector<std:
 std::map<std::string, std::vector<std::string>> readDataMatrixFile(const std::string &filename);
 
 cv::Mat get_image(const std::filesystem::directory_entry &entry);
+
+std::vector<std::pair<cv::Mat, std::string>> getImagesFromFiles();

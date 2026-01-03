@@ -15,13 +15,13 @@ Axis, one can see the total found/not found codes of the specific implementation
 
 There are 111 codes to detect.
 
-| Library  | Detected | Timeout | Percentage |
-|----------|----------|---------|------------|
-| ZXing    | 70       | 0ms     | 63%        |
-| Libdmtx  | 80       | 100ms   | 72%        |
-| Libdmtx  | 82       | 200ms   | 73%        |
-| Libdmtx  | 85       | 0ms     | 76%        |
-| Combined | 95       | 0ms     | 86%        |
+| Library                        | Detected | Timeout | Percentage |
+|--------------------------------|----------|---------|------------|
+| ZXingCodeReader                | 70       | 0ms     | 63%        |
+| LibdmtxCodeReader              | 80       | 100ms   | 72%        |
+| LibdmtxCodeReader              | 82       | 200ms   | 73%        |
+| LibdmtxCodeReader              | 85       | 0ms     | 76%        |
+| LibdmtxZXingCombinedCodeReader | 95       | 0ms     | 86%        |
 
 ## Result for each code
 

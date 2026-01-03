@@ -11,7 +11,7 @@
 #include "sfdm/libdmtx_zxing_combined_code_reader.hpp"
 #include "test_utils.hpp"
 
-#define BUILD_FOR_PLOTS
+// #define BUILD_FOR_PLOTS
 // #define PAINT_FOUND_CODES
 
 namespace {
@@ -77,46 +77,37 @@ namespace {
         const auto data = readDataMatrixFile("../_deps/images-src/annotations.txt");
 
         SECTION("Single") {
-            for (const auto &entry: std::filesystem::directory_iterator("../_deps/images-src")) {
-                if (entry.is_regular_file() && entry.path().extension() == ".jpg") {
-                    cv::Mat image = get_image(entry);
-
-                    const auto fileName = entry.path().stem().string();
-                    const auto it = data.find(fileName);
-                    if (it == data.end()) {
-                        continue;
-                    }
-                    const auto currentData = it->second;
-                    SECTION(fileName) {
-                        auto foundCodes = callable(image, fileName, currentData.size());
-                        auto foundText = getTexts(foundCodes);
-                        checkTexts(foundText, currentData);
+            for (const auto [image, fileName]: getImagesFromFiles()) {
+                const auto it = data.find(fileName);
+                if (it == data.end()) {
+                    continue;
+                }
+                const auto currentData = it->second;
+                SECTION(fileName) {
+                    auto foundCodes = callable(image, fileName, currentData.size());
+                    auto foundText = getTexts(foundCodes);
+                    checkTexts(foundText, currentData);
 #ifndef BUILD_FOR_PLOTS
-                        checkPositions(getPositions(foundCodes));
+                    checkPositions(getPositions(foundCodes));
 #endif
-                    }
                 }
             }
         }
         SECTION("Overall") {
             int foundTotal = 0;
             int totalCodes = 0;
-            for (const auto &entry: std::filesystem::directory_iterator("../_deps/images-src")) {
-                if (entry.is_regular_file() && entry.path().extension() == ".jpg") {
-                    cv::Mat image = get_image(entry);
+            for (const auto [image, fileName]: getImagesFromFiles()) {
 
-                    const auto fileName = entry.path().stem().string();
-                    const auto it = data.find(fileName);
-                    if (it == data.end()) {
-                        continue;
-                    }
-                    const auto currentData = it->second;
-                    const auto foundCodes = callable(image, fileName, currentData.size());
-                    const auto foundTexts = getTexts(foundCodes);
-                    const auto foundCount = foundTexts.size() - extraElementsCount(foundTexts, currentData);
-                    foundTotal += foundCount;
-                    totalCodes += currentData.size();
+                const auto it = data.find(fileName);
+                if (it == data.end()) {
+                    continue;
                 }
+                const auto currentData = it->second;
+                const auto foundCodes = callable(image, fileName, currentData.size());
+                const auto foundTexts = getTexts(foundCodes);
+                const auto foundCount = foundTexts.size() - extraElementsCount(foundTexts, currentData);
+                foundTotal += foundCount;
+                totalCodes += currentData.size();
             }
             REQUIRE(foundTotal == totalCodes);
         }

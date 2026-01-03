@@ -1,7 +1,7 @@
 find_package(Catch2 REQUIRED)
 find_package(OpenCV REQUIRED)
 
-add_executable(test main.cpp test_utils.hpp test_utils.cpp)
+add_executable(test test_decoder.cpp benchmark_decoder.cpp test_utils.hpp test_utils.cpp)
 target_link_libraries(test PRIVATE Catch2::Catch2WithMain opencv::opencv sfdm)
 
 include(FetchContent)

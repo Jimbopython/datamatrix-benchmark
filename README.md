@@ -67,6 +67,8 @@ cmake --preset=conan-<build_type>
 cmake --build --preset=conan-<build_type>
 ```
 
-# Detection results
+# Detection results & Performance
 
-[See here](doc/detection_results.md)
+[Detection results](doc/detection_results.md)
+
+[Performance](doc/performance.md)

@@ -71,3 +71,14 @@ cv::Mat get_image(const std::filesystem::directory_entry &entry) {
     gray.convertTo(gray, CV_8U);
     return gray;
 }
+
+std::vector<std::pair<cv::Mat, std::string>> getImagesFromFiles() {
+    std::vector<std::pair<cv::Mat, std::string>> result;
+    result.reserve(58);
+    for (const auto &entry: std::filesystem::directory_iterator("../_deps/images-src")) {
+        if (entry.is_regular_file() && entry.path().extension() == ".jpg") {
+            result.emplace_back(get_image(entry), entry.path().stem().string());
+        }
+    }
+    return result;
+}
