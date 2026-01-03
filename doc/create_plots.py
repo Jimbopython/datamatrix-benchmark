@@ -1,4 +1,5 @@
 import argparse
+import os.path
 import re
 import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
@@ -34,7 +35,8 @@ def do_plot_work(entries, lib, time_label=None):
     plt.legend()
     plt.tight_layout()
 
-    plt.show()
+    os.makedirs("plots", exist_ok=True)
+    plt.savefig(f"plots/{lib}_{time_label}.png")
     return overall
 
 
@@ -68,7 +70,8 @@ def plot_overall(data):
     plt.legend()
     plt.tight_layout()
 
-    plt.show()
+    os.makedirs("plots", exist_ok=True)
+    plt.savefig("plots/Overall.png")
 
 
 def plot_success_rates(data):
@@ -78,7 +81,8 @@ def plot_success_rates(data):
             "100ms": {},
             "200ms": {}
         },
-        "ZXing": {}
+        "ZXing": {},
+        "Combined": {}
     }
     for lib, entries in data.items():
         if lib == "LibDMTX":
@@ -137,7 +141,8 @@ def main():
                 "100ms": {},
                 "200ms": {},
             },
-        "ZXing": {}
+        "ZXing": {},
+        "Combined": {}
     }
 
     for testcase in root.findall("TestCase"):
@@ -159,6 +164,10 @@ def main():
                 name, successes, failures = get_data_from_xml(section)
                 if name is not None:
                     data["ZXing"][name] = (successes, failures)
+            elif "Combined" in testcase.get("name"):
+                name, successes, failures = get_data_from_xml(section)
+                if name is not None:
+                    data["Combined"][name] = (successes, failures)
 
     plot_success_rates(data)
 

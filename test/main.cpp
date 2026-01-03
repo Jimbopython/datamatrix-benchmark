@@ -11,7 +11,7 @@
 #include "sfdm/libdmtx_zxing_combined_code_reader.hpp"
 #include "test_utils.hpp"
 
-// #define BUILD_FOR_PLOTS
+#define BUILD_FOR_PLOTS
 // #define PAINT_FOUND_CODES
 
 namespace {
