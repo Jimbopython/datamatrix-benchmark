@@ -13,7 +13,7 @@ class SfdmConan(ConanFile):
     license = "MIT"
     url = "https://github.com/conan-io/conan-center-index"
     homepage = "https://github.com/Jimbopython/sfdm"
-    topics = ("todo",)
+    topics = ("image-processing", "barcode-reader", "datamatrix", "barcode-detector," "barcode-decoder")
     package_type = "library"
     settings = "os", "arch", "compiler", "build_type"
     options = {
