@@ -49,7 +49,7 @@ class SfdmConan(ConanFile):
         check_min_cppstd(self, 20)
 
     def build_requirements(self):
-        self.tool_requires("cmake/[>=3.20]")
+        self.tool_requires("cmake/[>=3.24]")
 
     def source(self):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
