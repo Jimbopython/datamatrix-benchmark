@@ -108,7 +108,7 @@ namespace sfdm {
 
             const auto message = decode(decodeGuard.getDecoder(), region);
             if (!message) {
-                break;
+                continue;
             }
             const CodePosition position = getPosition(image, region);
             DecodeResult decodeResult{reinterpret_cast<const char *>(message->output), position};
