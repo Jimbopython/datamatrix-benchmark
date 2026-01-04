@@ -18,12 +18,12 @@ There are 111 codes to detect.
 | Library                        | Detected | Timeout | Percentage |
 |--------------------------------|----------|---------|------------|
 | ZXingCodeReader                | 70       | 0ms     | 63%        |
-| LibdmtxCodeReader              | 80       | 100ms   | 72%        |
-| LibdmtxCodeReader              | 82       | 200ms   | 73%        |
-| LibdmtxCodeReader              | 85       | 0ms     | 76%        |
-| LibdmtxZXingCombinedCodeReader | 94       | 100ms   | 85%        |
-| LibdmtxZXingCombinedCodeReader | 95       | 200ms   | 86%        |
-| LibdmtxZXingCombinedCodeReader | 95       | 0ms     | 86%        |
+| LibdmtxCodeReader              | 85       | 100ms   | 77%        |
+| LibdmtxCodeReader              | 88       | 200ms   | 80%        |
+| LibdmtxCodeReader              | 90       | 0ms     | 81%        |
+| LibdmtxZXingCombinedCodeReader | 97       | 100ms   | 87%        |
+| LibdmtxZXingCombinedCodeReader | 100      | 200ms   | 90%        |
+| LibdmtxZXingCombinedCodeReader | 100      | 0ms     | 90%        |
 
 ## Result for each code
 
