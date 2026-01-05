@@ -32,6 +32,8 @@ namespace sfdm {
         [[nodiscard]] ResultStream decodeStream(const ImageView &image) const;
 
         /*!
+         * This is a timeout that will be reset after each detection of one code in an image.
+         * This timeout is for detection only, not decoding.
          * Note: 0 is until really nothing can be found
          * @param msec
          */
@@ -40,7 +42,7 @@ namespace sfdm {
         bool isTimeoutSupported() override;
 
         void setMaximumNumberOfCodesToDetect(size_t count) override;
-        size_t getMaximumNumberOfCodesToDetect() const override;
+        [[nodiscard]] size_t getMaximumNumberOfCodesToDetect() const override;
 
         bool isDecodeWithCallbackSupported() override;
 
