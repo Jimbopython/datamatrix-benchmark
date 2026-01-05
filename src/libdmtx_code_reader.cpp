@@ -90,11 +90,13 @@ namespace sfdm {
                 }};
     }
 
-    std::vector<DecodeResult> LibdmtxCodeReader::decode(const ImageView &image) const {
+    std::vector<DecodeResult> LibdmtxCodeReader::decode(const ImageView &image) const { return decode(image, {}); }
+    std::vector<DecodeResult> LibdmtxCodeReader::decode(const ImageView &image,
+                                                        std::function<void(DecodeResult)> callback) const {
         std::vector<DecodeResult> results;
         results.reserve(m_maximumNumberOfCodesToDetect);
         std::vector<std::jthread> threads;
-        if (m_decodingFinishedCallback) {
+        if (callback) {
             threads.reserve(m_maximumNumberOfCodesToDetect);
         }
 
@@ -102,8 +104,8 @@ namespace sfdm {
 
         while (stream.next()) {
             const auto decodeResult = stream.value();
-            if (m_decodingFinishedCallback) {
-                threads.emplace_back(m_decodingFinishedCallback, decodeResult);
+            if (callback) {
+                threads.emplace_back(callback, decodeResult);
             }
             results.emplace_back(decodeResult);
         }
@@ -141,12 +143,8 @@ namespace sfdm {
 
     bool LibdmtxCodeReader::isTimeoutSupported() { return true; }
 
-    void LibdmtxCodeReader::setMaximumNumberOfCodesToDetect(uint32_t count) { m_maximumNumberOfCodesToDetect = count; }
+    void LibdmtxCodeReader::setMaximumNumberOfCodesToDetect(size_t count) { m_maximumNumberOfCodesToDetect = count; }
 
-    uint32_t LibdmtxCodeReader::getMaximumNumberOfCodesToDetect() const { return m_maximumNumberOfCodesToDetect; }
-
-    void LibdmtxCodeReader::setDecodingFinishedCallback(std::function<void(DecodeResult)> callback) {
-        m_decodingFinishedCallback = callback;
-    }
-    bool LibdmtxCodeReader::isDecodingFinishedCallbackSupported() { return true; }
+    size_t LibdmtxCodeReader::getMaximumNumberOfCodesToDetect() const { return m_maximumNumberOfCodesToDetect; }
+    bool LibdmtxCodeReader::isDecodeWithCallbackSupported() { return true; }
 } // namespace sfdm

@@ -77,7 +77,7 @@ namespace {
         const auto data = readDataMatrixFile("../_deps/images-src/annotations.txt");
 
         SECTION("Single") {
-            for (const auto [image, fileName]: getImagesFromFiles()) {
+            for (const auto &[image, fileName]: getImagesFromFiles()) {
                 const auto it = data.find(fileName);
                 if (it == data.end()) {
                     continue;
@@ -94,9 +94,9 @@ namespace {
             }
         }
         SECTION("Overall") {
-            int foundTotal = 0;
-            int totalCodes = 0;
-            for (const auto [image, fileName]: getImagesFromFiles()) {
+            size_t foundTotal = 0;
+            size_t totalCodes = 0;
+            for (const auto &[image, fileName]: getImagesFromFiles()) {
 
                 const auto it = data.find(fileName);
                 if (it == data.end()) {
@@ -113,23 +113,24 @@ namespace {
         }
     }
 
-    auto testReader(auto &reader, const cv::Mat &image, std::string libName, std::string codeName) {
-#ifndef BUILD_FOR_PLOTS
-        std::vector<sfdm::DecodeResult> callbackData;
-        std::mutex dataMutex;
+    auto testReader(auto &reader, const cv::Mat &image, [[maybe_unused]] std::string libName,
+                    [[maybe_unused]] std::string codeName) {
+        std::vector<sfdm::DecodeResult> foundData;
 
-        if (reader.isDecodingFinishedCallbackSupported()) {
-            reader.setDecodingFinishedCallback([&](auto result) {
-                std::lock_guard lock(dataMutex);
-                callbackData.emplace_back(result);
-            });
-        }
-#endif
-        const auto foundData =
-                reader.decode({static_cast<size_t>(image.cols), static_cast<size_t>(image.rows), image.data});
 #ifndef BUILD_FOR_PLOTS
-        if (reader.isDecodingFinishedCallbackSupported()) {
+        if (reader.isDecodeWithCallbackSupported()) {
+            std::vector<sfdm::DecodeResult> callbackData;
+            std::mutex dataMutex;
+
+            foundData = reader.decode({static_cast<size_t>(image.cols), static_cast<size_t>(image.rows), image.data},
+                                      [&](auto result) {
+                                          std::lock_guard lock(dataMutex);
+                                          callbackData.emplace_back(result);
+                                      });
+
             REQUIRE(foundData == callbackData);
+        } else {
+            foundData = reader.decode({static_cast<size_t>(image.cols), static_cast<size_t>(image.rows), image.data});
         }
 #endif
 #ifdef PAINT_FOUND_CODES

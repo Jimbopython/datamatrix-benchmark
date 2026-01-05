@@ -1,5 +1,8 @@
 # Performance
 
+The following data shows the performance on an i5 10300H on Windows 11, when the amount of
+datamatrix codes in an image is known.
+
 | Library                        | Timeout | Mean   | Std. Dev. |
 |--------------------------------|---------|--------|-----------|
 | ZXingCodeReader                | 0ms     | 1.92ms | 2.57ms    |

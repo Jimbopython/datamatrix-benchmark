@@ -47,6 +47,12 @@ namespace sfdm {
         });
         return decodeResults;
     }
+    std::vector<DecodeResult> ZXingCodeReader::decode(const ImageView &image,
+                                                      std::function<void(DecodeResult)> callback) const {
+        (void) image;
+        (void) callback;
+        throw std::runtime_error{"Decode with callback is not supported!"};
+    }
 
     void ZXingCodeReader::setTimeout(uint32_t msec) {
         (void) msec;
@@ -56,16 +62,12 @@ namespace sfdm {
 
     bool ZXingCodeReader::isTimeoutSupported() { return false; }
 
-    void ZXingCodeReader::setMaximumNumberOfCodesToDetect(uint32_t count) {
+    void ZXingCodeReader::setMaximumNumberOfCodesToDetect(size_t count) {
         if (count > 255) {
             throw std::runtime_error{"maximum number of codes cannot exceed 255!"};
         }
         m_impl->options.setMaxNumberOfSymbols(static_cast<uint8_t>(count));
     }
-    uint32_t ZXingCodeReader::getMaximumNumberOfCodesToDetect() const { return m_impl->options.maxNumberOfSymbols(); }
-    void ZXingCodeReader::setDecodingFinishedCallback(std::function<void(DecodeResult)> callback) {
-        (void) callback;
-        throw std::runtime_error{"setDecodingFinishedCallback is not supported!"};
-    }
-    bool ZXingCodeReader::isDecodingFinishedCallbackSupported() { return false; }
+    size_t ZXingCodeReader::getMaximumNumberOfCodesToDetect() const { return m_impl->options.maxNumberOfSymbols(); }
+    bool ZXingCodeReader::isDecodeWithCallbackSupported() { return false; }
 } // namespace sfdm

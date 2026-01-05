@@ -93,24 +93,26 @@ namespace sfdm {
 
         return results;
     }
+    std::vector<DecodeResult> LibdmtxZXingCombinedCodeReader::decode(const ImageView &image,
+                                                                     std::function<void(DecodeResult)> callback) const {
+        (void) image;
+        (void) callback;
+        throw std::runtime_error("Decode with callback is not supported!");
+    }
 
     void LibdmtxZXingCombinedCodeReader::setTimeout(uint32_t msec) { m_libdmtxCodeReader.setTimeout(msec); }
     uint32_t LibdmtxZXingCombinedCodeReader::getTimeout() const { return m_libdmtxCodeReader.getTimeout(); }
 
     bool LibdmtxZXingCombinedCodeReader::isTimeoutSupported() { return true; }
 
-    void LibdmtxZXingCombinedCodeReader::setMaximumNumberOfCodesToDetect(uint32_t count) {
+    void LibdmtxZXingCombinedCodeReader::setMaximumNumberOfCodesToDetect(size_t count) {
         m_libdmtxCodeReader.setMaximumNumberOfCodesToDetect(count);
         m_zxingCodeReader.setMaximumNumberOfCodesToDetect(count);
     }
-    uint32_t LibdmtxZXingCombinedCodeReader::getMaximumNumberOfCodesToDetect() const {
+    size_t LibdmtxZXingCombinedCodeReader::getMaximumNumberOfCodesToDetect() const {
         return m_libdmtxCodeReader.getMaximumNumberOfCodesToDetect();
     }
-    void LibdmtxZXingCombinedCodeReader::setDecodingFinishedCallback(std::function<void(DecodeResult)> callback) {
-        (void) callback;
-        throw std::runtime_error("LibdmtxZXingCombinedCodeReader::setDecodingFinishedCallback is not supported.");
-    }
-    bool LibdmtxZXingCombinedCodeReader::isDecodingFinishedCallbackSupported() { return false; }
+    bool LibdmtxZXingCombinedCodeReader::isDecodeWithCallbackSupported() { return false; }
     void LibdmtxZXingCombinedCodeReader::setDoubleCheckZXing(bool value) { m_doubleCheckZXing = value; }
     bool LibdmtxZXingCombinedCodeReader::getDoubleCheckZXing() const { return m_doubleCheckZXing; }
 } // namespace sfdm

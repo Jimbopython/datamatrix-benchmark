@@ -2,7 +2,8 @@
 
 The dataset the following plots were created with is
 from [this](https://www.mdpi.com/2313-433X/7/9/163)
-article. The green bars are "successes", which means "codes detected". The red bars, some of which
+article.
+The green bars are "successes", which means "codes detected". The red bars, some of which
 are on top of green bars, are "failures", which means "codes that were not detected". As a result,
 the total codes within an image are green + red.
 

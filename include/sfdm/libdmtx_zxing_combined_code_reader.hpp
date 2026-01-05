@@ -9,16 +9,17 @@ namespace sfdm {
     class LibdmtxZXingCombinedCodeReader : public ICodeReader {
     public:
         [[nodiscard]] std::vector<DecodeResult> decode(const ImageView &image) const override;
+        [[nodiscard]] std::vector<DecodeResult> decode(const ImageView &image,
+                                                       std::function<void(DecodeResult)> callback) const override;
 
         void setTimeout(uint32_t msec) override;
         [[nodiscard]] uint32_t getTimeout() const override;
         bool isTimeoutSupported() override;
 
-        void setMaximumNumberOfCodesToDetect(uint32_t count) override;
-        [[nodiscard]] uint32_t getMaximumNumberOfCodesToDetect() const override;
+        void setMaximumNumberOfCodesToDetect(size_t count) override;
+        [[nodiscard]] size_t getMaximumNumberOfCodesToDetect() const override;
 
-        void setDecodingFinishedCallback(std::function<void(DecodeResult)> callback) override;
-        bool isDecodingFinishedCallbackSupported() override;
+        bool isDecodeWithCallbackSupported() override;
 
         void setDoubleCheckZXing(bool value);
         [[nodiscard]] bool getDoubleCheckZXing() const;

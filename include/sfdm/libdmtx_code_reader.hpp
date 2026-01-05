@@ -10,10 +10,26 @@ struct DmtxMessage_struct;
 }
 
 namespace sfdm {
+    /*!
+     * Code Reader using libdmtx in the backend.
+     * Best for accuracy, but can be slow, when timeout is not set or too high
+     */
     class LibdmtxCodeReader : public ICodeReader {
     public:
+        /*!
+         * Decode damatrix codes in the provided image.
+         * This is a blocking call until the decoding of all damatrix codes in the image are finished.
+         * It is recommended to set the number of damatrix codes that can be detected, because then this function will
+         * return faster. How fast the function "gives up" searching for codes in the image, can be tuned with the
+         * setTimeout function.
+         * @param image image used for damatrix code detection and decoding
+         * @return Decoded results that were found in the image
+         */
         [[nodiscard]] std::vector<DecodeResult> decode(const ImageView &image) const override;
-        ResultStream decodeStream(const ImageView &image) const;
+        [[nodiscard]] std::vector<DecodeResult> decode(const ImageView &image,
+                                                       std::function<void(DecodeResult)> callback) const override;
+
+        [[nodiscard]] ResultStream decodeStream(const ImageView &image) const;
 
         /*!
          * Note: 0 is until really nothing can be found
@@ -23,11 +39,10 @@ namespace sfdm {
         [[nodiscard]] uint32_t getTimeout() const override;
         bool isTimeoutSupported() override;
 
-        void setMaximumNumberOfCodesToDetect(uint32_t count) override;
-        uint32_t getMaximumNumberOfCodesToDetect() const override;
+        void setMaximumNumberOfCodesToDetect(size_t count) override;
+        size_t getMaximumNumberOfCodesToDetect() const override;
 
-        void setDecodingFinishedCallback(std::function<void(DecodeResult)> callback) override;
-        bool isDecodingFinishedCallbackSupported() override;
+        bool isDecodeWithCallbackSupported() override;
 
     private:
         enum class StopCause {
@@ -44,7 +59,6 @@ namespace sfdm {
         decode(const std::shared_ptr<DmtxDecode_struct> &decoder,
                const std::shared_ptr<DmtxRegion_struct> &region) const;
         uint32_t m_timeoutMSec{200};
-        uint32_t m_maximumNumberOfCodesToDetect{255};
-        std::function<void(DecodeResult)> m_decodingFinishedCallback{};
+        size_t m_maximumNumberOfCodesToDetect{255};
     };
 } // namespace sfdm
