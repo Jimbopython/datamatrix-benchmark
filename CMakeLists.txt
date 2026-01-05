@@ -18,13 +18,15 @@ if (sfdm_WITH_LIBDMTX_DECODER)
     find_package(libdmtx REQUIRED)
 endif ()
 
-add_library(sfdm)
+add_library(sfdm
+        src/detection_result.cpp)
 
 include(cmake/create_config_header.cmake)
 create_config_header(sfdm)
 
 target_sources(sfdm
     PRIVATE
+        src/detection_result.cpp
         $<$<BOOL:${sfdm_WITH_ZXING_DECODER}>:src/zxing_code_reader.cpp>
         $<$<BOOL:${sfdm_WITH_LIBDMTX_DECODER}>:src/libdmtx_code_reader.cpp>
         $<$<AND:$<BOOL:${sfdm_WITH_LIBDMTX_DECODER}>,$<BOOL:${sfdm_WITH_ZXING_DECODER}>>:src/libdmtx_zxing_combined_code_reader.cpp>
@@ -39,6 +41,10 @@ target_sources(sfdm
         include/sfdm/icode_reader.hpp
         include/sfdm/image_view.hpp
         include/sfdm/sfdm.hpp
+        include/sfdm/code_position.hpp
+        include/sfdm/detection_result.hpp
+        include/sfdm/sfdm_point.hpp
+        include/sfdm/result_stream.hpp
         ${CMAKE_CURRENT_BINARY_DIR}/include/sfdm/sfdm_config.hpp
         $<$<BOOL:${sfdm_WITH_LIBDMTX_DECODER}>:include/sfdm/libdmtx_code_reader.hpp>
         $<$<BOOL:${sfdm_WITH_ZXING_DECODER}>:include/sfdm/zxing_code_reader.hpp>

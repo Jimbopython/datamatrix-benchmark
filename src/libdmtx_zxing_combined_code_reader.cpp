@@ -37,6 +37,10 @@ namespace {
 } // namespace
 
 namespace sfdm {
+    std::vector<DetectionResult> LibdmtxZXingCombinedCodeReader::detect(const ImageView &image) const {
+        (void) image;
+        return {};
+    }
     std::vector<DecodeResult> LibdmtxZXingCombinedCodeReader::decode(const ImageView &image) const {
         const auto maximumNumberOfCodesToDetect = getMaximumNumberOfCodesToDetect();
         std::vector<DecodeResult> results;

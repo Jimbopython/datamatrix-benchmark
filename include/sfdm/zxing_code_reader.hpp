@@ -12,7 +12,7 @@ namespace sfdm {
 
         ~ZXingCodeReader() override;
 
-        // DetectionResult detect(const cv::Mat &image) override;
+        [[nodiscard]] std::vector<DetectionResult> detect(const ImageView &image) const override;
 
         [[nodiscard]] std::vector<DecodeResult> decode(const ImageView &image) const override;
         [[nodiscard]] std::vector<DecodeResult> decode(const ImageView &image,

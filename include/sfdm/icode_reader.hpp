@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include <sfdm/decode_result.hpp>
+#include <sfdm/detection_result.hpp>
 #include <sfdm/image_view.hpp>
 #include <vector>
 
@@ -9,7 +10,7 @@ namespace sfdm {
     public:
         virtual ~ICodeReader() = default;
 
-        // virtual std::vector<DetectionResult> detect(const cv::Mat& image) = 0;
+        [[nodiscard]] virtual std::vector<DetectionResult> detect(const ImageView &image) const = 0;
         [[nodiscard]] virtual std::vector<DecodeResult> decode(const ImageView &image) const = 0;
         [[nodiscard]] virtual std::vector<DecodeResult> decode(const ImageView &image,
                                                                std::function<void(DecodeResult)> callback) const = 0;

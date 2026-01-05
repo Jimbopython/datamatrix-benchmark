@@ -8,6 +8,8 @@
 namespace sfdm {
     class LibdmtxZXingCombinedCodeReader : public ICodeReader {
     public:
+        [[nodiscard]] std::vector<DetectionResult> detect(const ImageView &image) const override;
+
         [[nodiscard]] std::vector<DecodeResult> decode(const ImageView &image) const override;
         [[nodiscard]] std::vector<DecodeResult> decode(const ImageView &image,
                                                        std::function<void(DecodeResult)> callback) const override;

@@ -90,6 +90,38 @@ namespace sfdm {
                 }};
     }
 
+    std::vector<DetectionResult> LibdmtxCodeReader::detect(const ImageView &image) const {
+        auto stream = detectStream(image);
+
+        std::vector<DetectionResult> results;
+        while (stream.next()) {
+            results.emplace_back(stream.value());
+        }
+        return results;
+    }
+    struct FooBResult : DetectionResult::DetectionResultImpl {
+        std::shared_ptr<DecodeGuard> guard;
+        std::shared_ptr<DmtxRegion> region;
+        FooBResult(const std::shared_ptr<DecodeGuard> &decodeGuard, const std::shared_ptr<DmtxRegion> &region) :
+            guard(decodeGuard), region(region) {}
+    };
+
+    ResultStream<DetectionResult> LibdmtxCodeReader::detectStream(const ImageView &image) const {
+        auto decodeGuard = std::make_shared<DecodeGuard>(image);
+
+        size_t detectedCodes = 0;
+        while (detectedCodes < m_maximumNumberOfCodesToDetect) {
+            const auto [region, stopCause] = detectNext(decodeGuard->getDecoder());
+            // stopCause can be NotFound, but a valid region is returned, which may actually contain a valid code.
+            if (!region && stopCause != StopCause::ScanSuccess) {
+                co_return;
+            }
+            ++detectedCodes;
+            const CodePosition position = getPosition(image, region);
+
+            co_yield DetectionResult{std::make_shared<FooBResult>(decodeGuard, region), position};
+        }
+    }
     std::vector<DecodeResult> LibdmtxCodeReader::decode(const ImageView &image) const { return decode(image, {}); }
     std::vector<DecodeResult> LibdmtxCodeReader::decode(const ImageView &image,
                                                         std::function<void(DecodeResult)> callback) const {
@@ -103,7 +135,7 @@ namespace sfdm {
         auto stream = decodeStream(image);
 
         while (stream.next()) {
-            const auto decodeResult = stream.value();
+            const auto &decodeResult = stream.value();
             if (callback) {
                 threads.emplace_back(callback, decodeResult);
             }
@@ -115,25 +147,19 @@ namespace sfdm {
         return results;
     }
 
-    ResultStream LibdmtxCodeReader::decodeStream(const ImageView &image) const {
-        DecodeGuard decodeGuard(image);
+    ResultStream<DecodeResult> LibdmtxCodeReader::decodeStream(const ImageView &image) const {
+        auto detStream = detectStream(image);
 
-        size_t detectedCodes = 0;
-        while (detectedCodes < m_maximumNumberOfCodesToDetect) {
-            const auto [region, stopCause] = detectNext(decodeGuard.getDecoder());
-            // stopCause can be NotFound, but a valid region is returned, which may actually contain a valid code.
-            if (!region && stopCause != StopCause::ScanSuccess) {
-                co_return;
-            }
+        while (detStream.next()) {
+            const auto &detectionResult = detStream.value();
 
-            const auto message = decode(decodeGuard.getDecoder(), region);
+            auto detectionResultWrapper = std::dynamic_pointer_cast<FooBResult>(detectionResult.getImpl());
+            const auto message = decode(detectionResultWrapper->guard->getDecoder(), detectionResultWrapper->region);
             if (!message) {
                 continue;
             }
-            const CodePosition position = getPosition(image, region);
-            DecodeResult decodeResult{reinterpret_cast<const char *>(message->output), position};
+            DecodeResult decodeResult{reinterpret_cast<const char *>(message->output), detectionResult.getPosition()};
 
-            ++detectedCodes;
             co_yield decodeResult;
         }
     }

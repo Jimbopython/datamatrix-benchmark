@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <sfdm/icode_reader.hpp>
+#include <sfdm/result_stream.hpp>
 #include <vector>
 
 extern "C" {
@@ -29,7 +30,7 @@ namespace sfdm {
         [[nodiscard]] std::vector<DecodeResult> decode(const ImageView &image,
                                                        std::function<void(DecodeResult)> callback) const override;
 
-        [[nodiscard]] ResultStream decodeStream(const ImageView &image) const;
+        [[nodiscard]] ResultStream<DecodeResult> decodeStream(const ImageView &image) const;
 
         /*!
          * This is a timeout that will be reset after each detection of one code in an image.
@@ -45,6 +46,16 @@ namespace sfdm {
         [[nodiscard]] size_t getMaximumNumberOfCodesToDetect() const override;
 
         bool isDecodeWithCallbackSupported() override;
+
+    protected:
+        /*!
+         * Libdmtx detection needs immediate decoding to be verified. The decoder is shared between detection and
+         * decoding. When decoded successfully, the detection uses this info and skips nearby possible detections.
+         * @param image
+         * @return
+         */
+        [[nodiscard]] std::vector<DetectionResult> detect(const ImageView &image) const override;
+        [[nodiscard]] ResultStream<DetectionResult> detectStream(const ImageView &image) const;
 
     private:
         enum class StopCause {

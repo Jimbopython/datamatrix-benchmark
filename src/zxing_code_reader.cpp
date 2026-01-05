@@ -1,5 +1,6 @@
 #include <ZXing/ReadBarcode.h>
 #include <sfdm/zxing_code_reader.hpp>
+#include <utility>
 
 namespace sfdm {
     struct ZXingCodeReaderImpl {
@@ -12,9 +13,13 @@ namespace sfdm {
         m_impl->options.setFormats(ZXing::BarcodeFormat::DataMatrix);
     }
 
-    ZXingCodeReader::~ZXingCodeReader() = default;
+    struct FooAResult : DetectionResult::DetectionResultImpl {
+        DecodeResult result;
+        explicit FooAResult(DecodeResult result) : result{std::move(result)} {}
+    };
 
-    std::vector<DecodeResult> ZXingCodeReader::decode(const ImageView &image) const {
+    ZXingCodeReader::~ZXingCodeReader() = default;
+    std::vector<DetectionResult> ZXingCodeReader::detect(const ImageView &image) const {
         ZXing::ImageView source{image.data, static_cast<int>(image.width), static_cast<int>(image.height),
                                 ZXing::ImageFormat::Lum};
 
@@ -45,8 +50,27 @@ namespace sfdm {
                                             }};
             return DecodeResult{result.text(), codePosition};
         });
+
+        std::vector<DetectionResult> detectionResults;
+        detectionResults.reserve(decodeResults.size());
+        std::ranges::transform(decodeResults, std::back_inserter(detectionResults), [](const auto &decodeResult) {
+            auto detectionResultImpl = std::make_shared<FooAResult>(decodeResult);
+            return DetectionResult{std::move(detectionResultImpl), decodeResult.position};
+        });
+        return detectionResults;
+    }
+
+    std::vector<DecodeResult> ZXingCodeReader::decode(const ImageView &image) const {
+        auto detectionResults = detect(image);
+        std::vector<DecodeResult> decodeResults;
+        decodeResults.reserve(detectionResults.size());
+        std::ranges::transform(detectionResults, std::back_inserter(decodeResults), [](const auto &detectionResult) {
+            auto decodeResultWrapper = std::dynamic_pointer_cast<FooAResult>(detectionResult.getImpl());
+            return decodeResultWrapper->result;
+        });
         return decodeResults;
     }
+
     std::vector<DecodeResult> ZXingCodeReader::decode(const ImageView &image,
                                                       std::function<void(DecodeResult)> callback) const {
         (void) image;
