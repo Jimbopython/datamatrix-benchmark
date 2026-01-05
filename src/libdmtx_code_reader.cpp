@@ -11,7 +11,8 @@ namespace {
     class DecodeGuard {
     public:
         explicit DecodeGuard(const sfdm::ImageView &image) :
-            m_image(dmtxImageCreate(image.data, image.width, image.height, DmtxPack8bppK),
+            m_image(dmtxImageCreate(image.data, static_cast<int>(image.width), static_cast<int>(image.height),
+                                    DmtxPack8bppK),
                     [](DmtxImage *dmtxImage) {
                         if (dmtxImage) {
                             dmtxImageDestroy(&dmtxImage);

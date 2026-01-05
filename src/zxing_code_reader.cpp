@@ -48,7 +48,10 @@ namespace sfdm {
         return decodeResults;
     }
 
-    void ZXingCodeReader::setTimeout(uint32_t msec) { throw std::runtime_error{"setTimeout is not supported!"}; }
+    void ZXingCodeReader::setTimeout(uint32_t msec) {
+        (void) msec;
+        throw std::runtime_error{"setTimeout is not supported!"};
+    }
     uint32_t ZXingCodeReader::getTimeout() const { throw std::runtime_error{"getTimeout is not supported!"}; }
 
     bool ZXingCodeReader::isTimeoutSupported() { return false; }
@@ -57,10 +60,11 @@ namespace sfdm {
         if (count > 255) {
             throw std::runtime_error{"maximum number of codes cannot exceed 255!"};
         }
-        m_impl->options.setMaxNumberOfSymbols(count);
+        m_impl->options.setMaxNumberOfSymbols(static_cast<uint8_t>(count));
     }
     uint32_t ZXingCodeReader::getMaximumNumberOfCodesToDetect() const { return m_impl->options.maxNumberOfSymbols(); }
     void ZXingCodeReader::setDecodingFinishedCallback(std::function<void(DecodeResult)> callback) {
+        (void) callback;
         throw std::runtime_error{"setDecodingFinishedCallback is not supported!"};
     }
     bool ZXingCodeReader::isDecodingFinishedCallbackSupported() { return false; }

@@ -50,7 +50,7 @@ namespace sfdm {
         results.reserve(maximumNumberOfCodesToDetect);
 
         std::mutex resultsMutex;
-        std::atomic zXingCount = 0;
+        std::atomic<size_t> zXingCount = 0;
 
         std::thread libdmtxThread([&] {
             auto stream = m_libdmtxCodeReader.decodeStream(image);
@@ -114,6 +114,7 @@ namespace sfdm {
         return m_libdmtxCodeReader.getMaximumNumberOfCodesToDetect();
     }
     void LibdmtxZXingCombinedCodeReader::setDecodingFinishedCallback(std::function<void(DecodeResult)> callback) {
+        (void) callback;
         throw std::runtime_error("LibdmtxZXingCombinedCodeReader::setDecodingFinishedCallback is not supported.");
     }
     bool LibdmtxZXingCombinedCodeReader::isDecodingFinishedCallbackSupported() { return false; }

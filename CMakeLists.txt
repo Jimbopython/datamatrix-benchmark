@@ -58,7 +58,9 @@ target_link_libraries(sfdm
         PRIVATE
         $<$<BOOL:${sfdm_WITH_ZXING_DECODER}>:ZXing::ZXing>
         $<$<BOOL:${sfdm_WITH_LIBDMTX_DECODER}>:libdmtx::libdmtx>)
-
+target_compile_options(sfdm PUBLIC
+        $<$<CXX_COMPILER_ID:MSVC>:/EHsc>
+)
 if (sfdm_BUILD_TESTS)
     add_subdirectory(test)
 endif ()
