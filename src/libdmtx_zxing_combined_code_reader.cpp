@@ -97,7 +97,6 @@ namespace sfdm {
                                         std::ref(resultsMutex), std::ref(results), maximumNumberOfCodesToDetect, false);
 
             const auto bufferRotated = std::make_unique<uint8_t[]>(image.width * image.height);
-            std::memcpy(bufferRotated.get(), image.data, image.width * image.height);
             const ImageView rotatedImage{image.width, image.height, bufferRotated.get()};
             rotate(image, rotatedImage);
 
