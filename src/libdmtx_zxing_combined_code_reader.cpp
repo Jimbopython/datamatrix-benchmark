@@ -63,11 +63,29 @@ namespace {
 } // namespace
 
 namespace sfdm {
+    bool LibdmtxZXingCombinedCodeReader::isFinished(std::vector<std::tuple<DecodeResult, ResultOrigin, bool>> &results,
+                                                    size_t maximumNumberOfCodesToDetect, bool doubleCheckZXing) {
+        if (results.size() == maximumNumberOfCodesToDetect) {
+            if (!doubleCheckZXing) {
+                return true;
+            }
+            const auto allChecked = std::ranges::all_of(results, [](const auto &res) {
+                const auto isChecked = std::get<2>(res);
+                return isChecked;
+            });
+
+            if (allChecked) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     void
     LibdmtxZXingCombinedCodeReader::libdmtxWorker(const ImageView &image, std::mutex &resultsMutex,
                                                   std::vector<std::tuple<DecodeResult, ResultOrigin, bool>> &results,
-                                                  size_t maximumNumberOfCodesToDetect, bool rotatedImage) const {
-        (void) maximumNumberOfCodesToDetect;
+                                                  size_t maximumNumberOfCodesToDetect, bool rotatedImage,
+                                                  bool doubleCheckZXing) const {
         auto stream = m_libdmtxCodeReader.decodeStream(image);
 
         while (stream.next()) {
@@ -76,6 +94,9 @@ namespace sfdm {
                 result.position = rotated(image, result.position);
             }
             std::lock_guard guard(resultsMutex);
+            if (isFinished(results, maximumNumberOfCodesToDetect, doubleCheckZXing)) {
+                return;
+            }
             const auto it = std::ranges::find_if(results, [&](const std::tuple<DecodeResult, ResultOrigin, bool> &res) {
                 const auto decodeResult = std::get<0>(res);
                 return diagonallyOppositeMatch(decodeResult.position, result.position);
@@ -83,6 +104,10 @@ namespace sfdm {
             const std::tuple res{result, ResultOrigin::Libdmtx, true};
             if (results.end() == it) {
                 results.emplace_back(res);
+
+                if (isFinished(results, maximumNumberOfCodesToDetect, doubleCheckZXing)) {
+                    return;
+                }
             } else {
                 const auto isChecked = std::get<2>(*it);
                 if (!isChecked) {
@@ -94,6 +119,8 @@ namespace sfdm {
 
     std::vector<DecodeResult> LibdmtxZXingCombinedCodeReader::decode(const ImageView &image) const {
         const auto maximumNumberOfCodesToDetect = getMaximumNumberOfCodesToDetect();
+        const auto doubleCheckZXing = m_doubleCheckZXing;
+
         std::vector<std::tuple<DecodeResult, ResultOrigin, bool>> results;
         results.reserve(maximumNumberOfCodesToDetect);
 
@@ -101,20 +128,21 @@ namespace sfdm {
 
         std::thread libdmtxThread([&] {
             std::jthread rightDirection(&LibdmtxZXingCombinedCodeReader::libdmtxWorker, this, std::cref(image),
-                                        std::ref(resultsMutex), std::ref(results), maximumNumberOfCodesToDetect, false);
+                                        std::ref(resultsMutex), std::ref(results), maximumNumberOfCodesToDetect, false,
+                                        doubleCheckZXing);
 
             const auto bufferRotated = std::make_unique<uint8_t[]>(image.width * image.height);
             const ImageView rotatedImage{image.width, image.height, bufferRotated.get()};
             rotate(image, rotatedImage);
 
-            libdmtxWorker(rotatedImage, resultsMutex, results, maximumNumberOfCodesToDetect, true);
+            libdmtxWorker(rotatedImage, resultsMutex, results, maximumNumberOfCodesToDetect, true, doubleCheckZXing);
         });
 
 
         std::thread zxingThread([&] {
             const auto result = m_zxingCodeReader.decode(image);
             std::lock_guard lock(resultsMutex);
-            if (results.size() == maximumNumberOfCodesToDetect) {
+            if (isFinished(results, maximumNumberOfCodesToDetect, false)) {
                 return;
             }
             const auto filteredResults = filterDuplicates(result, results);

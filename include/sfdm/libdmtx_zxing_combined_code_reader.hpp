@@ -62,9 +62,11 @@ namespace sfdm {
         [[nodiscard]] bool getDoubleCheckZXing() const;
 
     private:
+        static bool isFinished(std::vector<std::tuple<DecodeResult, ResultOrigin, bool>> &results,
+                               size_t maximumNumberOfCodesToDetect, bool doubleCheckZXing);
         void libdmtxWorker(const ImageView &image, std::mutex &resultsMutex,
                            std::vector<std::tuple<DecodeResult, ResultOrigin, bool>> &results,
-                           size_t maximumNumberOfCodesToDetect, bool rotatedImage) const;
+                           size_t maximumNumberOfCodesToDetect, bool rotatedImage, bool doubleCheckZXing) const;
 
         LibdmtxCodeReader m_libdmtxCodeReader;
         ZXingCodeReader m_zxingCodeReader;
